@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
-  <title>도화인숙대결 장기 미니게임</title>
+  <title>박도화vs도인숙 장기 미니게임</title>
   <style>
     :root{
       --bg1:#ffb24d;
@@ -391,7 +391,7 @@
 
         <div class="topbar">
           <div class="brand">
-            <span>도화인숙대결</span>
+            <span>박도화VS도인숙</span>
             <span class="tag">장기 미니게임</span>
           </div>
 
@@ -702,6 +702,22 @@
   const chipImgCache = new Map();
 
   let movingPiece = null;
+
+  // ✅✅✅ 여기서 "장(漢/楚)" 말만 사진으로 교체 (나머지 말은 기존 SVG 유지)
+  // GitHub blob 링크는 이미지로 바로 로드가 안 되는 경우가 많아서 raw 주소로 사용
+  const KING_URL = {
+    [SIDE.CHO]: "https://raw.githubusercontent.com/ttjdwls777-eng/index.html/main/%EB%8F%84%EC%9D%B8.jpg", // AI(楚) 왕
+    [SIDE.HAN]: "https://raw.githubusercontent.com/ttjdwls777-eng/index.html/main/%EB%B0%95%EB%8F%84.jpg", // 나(漢) 왕
+  };
+  const kingImgCache = new Map();
+  function getKingImage(side){
+    if(kingImgCache.has(side)) return kingImgCache.get(side);
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = KING_URL[side];
+    kingImgCache.set(side, img);
+    return img;
+  }
 
   // -------------------------
   // Geometry
@@ -1157,9 +1173,14 @@
   }
 
   // -------------------------
-  // Piece Images (SVG) - ✅ 폰트 크기 반영
+  // Piece Images (SVG) - ✅ 폰트 크기 반영 + ✅ 장(漢/楚)은 사진
   // -------------------------
   function getPieceImage(p){
+    // ✅ 장(漢/楚)만 사진 사용
+    if(p.type === TYPE.G){
+      return getKingImage(p.side);
+    }
+
     const key = `${p.side}_${p.type}`;
     if(pieceImgCache.has(key)) return pieceImgCache.get(key);
 
@@ -1209,6 +1230,31 @@
   }
 
   function getChipURI(p){
+    // ✅ 장(漢/楚) 칩도 사진 사용
+    if(p.type === TYPE.G){
+      const key = `KINGCHIP_${p.side}`;
+      if(chipImgCache.has(key)) return chipImgCache.get(key);
+
+      const ring = (p.side === SIDE.HAN) ? '#39d98a' : '#ff5d5d';
+      const url = KING_URL[p.side];
+
+      const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60">
+        <defs>
+          <clipPath id="clip">
+            <circle cx="30" cy="30" r="20"/>
+          </clipPath>
+        </defs>
+        <circle cx="30" cy="31" r="23" fill="rgba(0,0,0,.18)"/>
+        <circle cx="30" cy="30" r="23" fill="#f3eadb" stroke="${ring}" stroke-width="3"/>
+        <image href="${url}" x="10" y="10" width="40" height="40" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip)"/>
+      </svg>`.trim();
+
+      const uri = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+      chipImgCache.set(key, uri);
+      return uri;
+    }
+
     const key = `${p.side}_${p.type}`;
     if(chipImgCache.has(key)) return chipImgCache.get(key);
 
