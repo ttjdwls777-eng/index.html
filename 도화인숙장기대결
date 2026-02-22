@@ -1,0 +1,1663 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
+  <title>XGP 장기 미니게임</title>
+  <style>
+    :root{
+      --bg1:#ffb24d;
+      --bg2:#ff6a3d;
+      --bg3:#d93a2b;
+
+      --ink:#fff7ea;
+      --gold:#ffd073;
+      --han:#39d98a;
+      --cho:#ff5d5d;
+
+      --shadow: 0 18px 0 rgba(0,0,0,.25);
+    }
+
+    *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+    html,body{ height:100%; width:100%; }
+    body{
+      margin:0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 800px at 20% 10%, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 55%),
+        radial-gradient(900px 600px at 80% 30%, rgba(255,255,255,.10) 0%, rgba(255,255,255,0) 55%),
+        linear-gradient(90deg, var(--bg1), var(--bg2) 50%, var(--bg3));
+      overflow-x:hidden;
+      overscroll-behavior: none;
+    }
+
+    body:before{
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      background-image: radial-gradient(rgba(255,255,255,.12) 1px, transparent 1px);
+      background-size: 42px 42px;
+      opacity:.28;
+      mix-blend-mode: overlay;
+    }
+
+    .page{
+      min-height:100%;
+      width:100%;
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+      padding: calc(18px + env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom)) 14px;
+      overflow-x:hidden;
+    }
+
+    .shell{
+      width: min(980px, 100%);
+      display:grid;
+      grid-template-columns: 1fr 280px;
+      gap: 14px;
+      align-items: start;
+    }
+    @media (max-width: 920px){
+      .shell{ grid-template-columns: 1fr; }
+    }
+
+    .card{
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.08));
+      border: 2px solid rgba(255,255,255,.25);
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow:hidden;
+      max-width:100%;
+    }
+
+    .frame{
+      border-radius: 18px;
+      border: 2px solid rgba(70,20,10,.35);
+      background: linear-gradient(180deg, rgba(0,0,0,.06), rgba(0,0,0,.10));
+      padding: 12px;
+      max-width:100%;
+    }
+
+    /* ✅ 장군 토스트 */
+    .janggunToast{
+      position:absolute;
+      left:50%;
+      top: 14px;
+      transform: translateX(-50%) translateY(-12px);
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 2px solid rgba(255,255,255,.26);
+      background: rgba(0,0,0,.30);
+      color: rgba(255,255,255,.95);
+      font-weight: 900;
+      letter-spacing: .6px;
+      box-shadow: 0 10px 0 rgba(0,0,0,.22);
+      display:none;
+      align-items:center;
+      gap: 10px;
+      z-index: 10;
+      user-select:none;
+      pointer-events:none;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      white-space: nowrap;
+      font-size: 18px;
+    }
+    .janggunToast .dot{
+      width:10px;height:10px;border-radius:99px;
+      background: var(--gold);
+      box-shadow: 0 0 0 6px rgba(255,208,115,.18);
+    }
+    .janggunToast.show{
+      display:flex;
+      animation: toastPop .9s ease both;
+    }
+    @keyframes toastPop{
+      0%{ opacity:0; transform: translateX(-50%) translateY(-16px) scale(.96); }
+      18%{ opacity:1; transform: translateX(-50%) translateY(0px) scale(1.05); }
+      55%{ opacity:1; transform: translateX(-50%) translateY(0px) scale(1.02); }
+      100%{ opacity:0; transform: translateX(-50%) translateY(-10px) scale(.98); }
+    }
+
+    .topbar{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      padding: 10px 14px;
+      gap: 10px;
+      flex-wrap:wrap;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-weight: 900;
+      letter-spacing:.4px;
+      min-width: 220px;
+    }
+    .brand .tag{
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 2px solid rgba(255,255,255,.25);
+      background: rgba(0,0,0,.10);
+      color: rgba(255,255,255,.9);
+      white-space: nowrap;
+    }
+
+    .topRight{
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+      gap: 6px;
+      flex:1;
+      min-width: 220px;
+    }
+
+    .help{
+      font-size: 12px;
+      color: rgba(255,255,255,.85);
+      opacity:.9;
+      text-align:right;
+    }
+
+    .recordRow{
+      display:flex;
+      gap: 8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .record{
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 2px solid rgba(255,255,255,.22);
+      background: rgba(0,0,0,.18);
+      color: rgba(255,255,255,.88);
+      white-space: nowrap;
+    }
+    .record b{ color: var(--gold); }
+
+    .stats{
+      display:flex;
+      gap: 10px;
+      padding: 0 14px 12px 14px;
+      flex-wrap:wrap;
+    }
+    .pill{
+      flex:1;
+      min-width: 160px;
+      background: rgba(0,0,0,.22);
+      border: 2px solid rgba(255,255,255,.22);
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+    .pill .k{ font-size: 12px; color: rgba(255,255,255,.80); }
+    .pill .v{ font-size: 16px; font-weight: 900; margin-top: 6px; }
+
+    .boardWrap{
+      padding: 0 14px 14px 14px;
+      max-width:100%;
+    }
+    .boardStage{
+      border-radius: 16px;
+      border: 2px solid rgba(255,255,255,.22);
+      background: radial-gradient(900px 600px at 50% 30%, rgba(30,45,85,.30) 0%, rgba(8,12,24,.92) 55%);
+      box-shadow: inset 0 0 0 2px rgba(0,0,0,.25);
+      padding: 12px;
+      max-width:100%;
+    }
+
+    canvas{
+      width: 100%;
+      max-width: 620px;
+      height: auto;
+      aspect-ratio: 9 / 10;
+      border-radius: 14px;
+      border: 2px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+      touch-action: none;
+      user-select: none;
+      display:block;
+      margin: 0 auto;
+    }
+
+    .bottomBtns{
+      display:flex;
+      gap: 10px;
+      padding: 0 14px 14px 14px;
+      flex-wrap:wrap;
+    }
+    button{
+      flex:1;
+      min-width: 140px;
+      border-radius: 14px;
+      border: 2px solid rgba(255,255,255,.22);
+      background: rgba(0,0,0,.20);
+      color: rgba(255,255,255,.92);
+      font-family: inherit;
+      font-weight: 900;
+      padding: 12px 12px;
+      cursor:pointer;
+      box-shadow: 0 8px 0 rgba(0,0,0,.22);
+      transform: translateY(0);
+      transition: transform .05s ease;
+    }
+    button:active{ transform: translateY(3px); box-shadow: 0 5px 0 rgba(0,0,0,.22); }
+    button.primary{
+      background: rgba(20,10,0,.22);
+      border-color: rgba(255, 208, 115, .55);
+    }
+    button.danger{
+      border-color: rgba(255,93,93,.55);
+      background: rgba(255,93,93,.12);
+    }
+
+    .side{
+      padding: 14px;
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+      max-width:100%;
+    }
+    .side h2{
+      margin:0;
+      font-size: 14px;
+      font-weight: 900;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 8px;
+      color: rgba(255,255,255,.95);
+    }
+    .mini{
+      font-size: 12px;
+      color: rgba(255,255,255,.75);
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 2px solid rgba(255,255,255,.20);
+      background: rgba(0,0,0,.18);
+      line-height: 1.45;
+    }
+    .capBox{
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 2px solid rgba(255,255,255,.20);
+      background: rgba(0,0,0,.18);
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+    }
+    .capTitle{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 8px;
+      font-size: 12px;
+      color: rgba(255,255,255,.80);
+      font-weight: 900;
+    }
+    .capRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 6px;
+      min-height: 36px;
+      align-items:center;
+    }
+    .capChip{
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      border: 2px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.06);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow: 0 6px 0 rgba(0,0,0,.18);
+    }
+    .capChip img{ width: 30px; height: 30px; display:block; }
+
+    .log{
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 2px solid rgba(255,255,255,.20);
+      background: rgba(0,0,0,.18);
+      min-height: 180px;
+      max-height: 280px;
+      overflow:auto;
+      white-space: pre-wrap;
+      font-size: 12px;
+      line-height: 1.5;
+      color: rgba(255,255,255,.78);
+    }
+
+    .overlay{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 16px;
+      background: rgba(0,0,0,.45);
+      z-index: 50;
+    }
+    .overlay.show{ display:flex; }
+    .modal{
+      width: min(560px, 100%);
+      padding: 14px;
+    }
+    .modal h3{
+      margin:0 0 8px 0;
+      font-size: 18px;
+      font-weight: 900;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+    }
+    .modal p{
+      margin: 0 0 12px 0;
+      color: rgba(255,255,255,.80);
+      line-height: 1.55;
+      font-size: 13px;
+    }
+    .kbd{
+      display:inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      border: 2px solid rgba(255,255,255,.20);
+      background: rgba(0,0,0,.20);
+      color: rgba(255,255,255,.95);
+      font-weight: 900;
+      font-size: 12px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <div class="shell">
+
+      <div class="card frame" id="mainCard">
+        <div class="janggunToast" id="janggunToast">
+          <span class="dot"></span>
+          <span id="janggunText">장군!</span>
+        </div>
+
+        <div class="topbar">
+          <div class="brand">
+            <span>XGP</span>
+            <span class="tag">장기 미니게임</span>
+          </div>
+
+          <div class="topRight">
+            <div class="recordRow">
+              <div class="record">최고 연승: <b id="bestStreakTxt">0</b></div>
+              <div class="record">최고 난이도: <b id="bestDiffTxt">EASY</b></div>
+            </div>
+            <div class="help">클릭/탭: 말 선택 → 목적지 (AI는 1초 뒤 둠)</div>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="pill">
+            <div class="k">턴</div>
+            <div class="v" id="turnTxt">漢(플레이어)</div>
+          </div>
+          <div class="pill">
+            <div class="k">난이도</div>
+            <div class="v" id="diffTxt">EASY</div>
+          </div>
+          <div class="pill">
+            <div class="k">연승</div>
+            <div class="v" id="streakTxt">0</div>
+          </div>
+        </div>
+
+        <div class="boardWrap">
+          <div class="boardStage">
+            <canvas id="cv" width="900" height="1000"></canvas>
+          </div>
+        </div>
+
+        <div class="bottomBtns">
+          <button class="primary" id="btnNew">다시 시작</button>
+          <button id="btnHelp">도움말</button>
+          <button class="danger" id="btnReset">연승 리셋</button>
+        </div>
+      </div>
+
+      <div class="card side">
+        <h2>
+          <span>플레이 정보</span>
+          <span id="statusTxt" style="font-size:12px;color:rgba(255,255,255,.78);font-weight:900;">진행중</span>
+        </h2>
+
+        <div class="mini">
+          규칙: <b>상대 ‘장(漢/楚)’을 잡으면 끝</b><br/>
+          말을 둘 때 <b>“탁”</b> 소리가 납니다.<br/>
+          <b>장군</b>이면 화면에 표시 + 소리.
+        </div>
+
+        <div class="capBox">
+          <div class="capTitle">
+            <span>漢(플레이어)가 잡은 말</span>
+            <span id="capHanCount">0</span>
+          </div>
+          <div class="capRow" id="capHan"></div>
+
+          <div class="capTitle" style="margin-top:4px;">
+            <span>楚(AI)가 잡은 말</span>
+            <span id="capChoCount">0</span>
+          </div>
+          <div class="capRow" id="capCho"></div>
+        </div>
+
+        <div class="capBox">
+          <div class="capTitle"><span>수순 로그</span><span id="logHint">—</span></div>
+          <div class="log" id="log"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="overlay show" id="helpOverlay">
+    <div class="card modal">
+      <h3>
+        <span>도움말</span>
+        <span class="kbd">漢 vs 楚</span>
+      </h3>
+      <p>
+        당신은 <b>漢(아래)</b>입니다.<br/>
+        목표: <b>상대 장(楚) 잡기</b><br/><br/>
+        조작: <span class="kbd">말 클릭/탭</span> → <span class="kbd">이동 칸 클릭/탭</span><br/>
+        말 이동은 <b>부드럽게 미끄러지는 애니메이션</b>으로 표시됩니다.
+      </p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="primary" id="btnGo" style="flex:1;">게임 시작</button>
+        <button id="btnCloseHelp" style="flex:1;">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="resultOverlay">
+    <div class="card modal">
+      <h3 id="resultTitle">결과</h3>
+      <p id="resultBody"></p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="primary" id="btnAgain" style="flex:1;">다시 하기</button>
+        <button id="btnCloseResult" style="flex:1;">닫기</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+
+  const UI = {
+    turnTxt: document.getElementById('turnTxt'),
+    diffTxt: document.getElementById('diffTxt'),
+    streakTxt: document.getElementById('streakTxt'),
+    statusTxt: document.getElementById('statusTxt'),
+
+    bestStreakTxt: document.getElementById('bestStreakTxt'),
+    bestDiffTxt: document.getElementById('bestDiffTxt'),
+
+    log: document.getElementById('log'),
+    logHint: document.getElementById('logHint'),
+
+    capHan: document.getElementById('capHan'),
+    capCho: document.getElementById('capCho'),
+    capHanCount: document.getElementById('capHanCount'),
+    capChoCount: document.getElementById('capChoCount'),
+
+    btnNew: document.getElementById('btnNew'),
+    btnHelp: document.getElementById('btnHelp'),
+    btnReset: document.getElementById('btnReset'),
+
+    helpOverlay: document.getElementById('helpOverlay'),
+    btnGo: document.getElementById('btnGo'),
+    btnCloseHelp: document.getElementById('btnCloseHelp'),
+
+    resultOverlay: document.getElementById('resultOverlay'),
+    resultTitle: document.getElementById('resultTitle'),
+    resultBody: document.getElementById('resultBody'),
+    btnAgain: document.getElementById('btnAgain'),
+    btnCloseResult: document.getElementById('btnCloseResult'),
+
+    janggunToast: document.getElementById('janggunToast'),
+    janggunText: document.getElementById('janggunText'),
+  };
+
+  // -------------------------
+  // Audio
+  // -------------------------
+  let audioCtx = null;
+  function ensureAudio(){
+    if(audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+
+  function playTak(){
+    if(!audioCtx) return;
+    const t0 = audioCtx.currentTime;
+
+    const dur = 0.085;
+    const bufferSize = Math.floor(audioCtx.sampleRate * dur);
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0;i<bufferSize;i++){
+      const env = Math.exp(-i/(bufferSize*0.18));
+      data[i] = (Math.random()*2-1) * env;
+    }
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+
+    const band = audioCtx.createBiquadFilter();
+    band.type = "bandpass";
+    band.frequency.setValueAtTime(1100, t0);
+    band.Q.setValueAtTime(2.2, t0);
+
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0.0, t0);
+    gain.gain.linearRampToValueAtTime(0.9, t0 + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+
+    noise.connect(band);
+    band.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    const osc = audioCtx.createOscillator();
+    osc.type = "triangle";
+    const og = audioCtx.createGain();
+    osc.frequency.setValueAtTime(240, t0);
+    og.gain.setValueAtTime(0.0001, t0);
+    og.gain.linearRampToValueAtTime(0.22, t0 + 0.006);
+    og.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.07);
+    osc.connect(og);
+    og.connect(audioCtx.destination);
+
+    noise.start(t0);
+    noise.stop(t0 + dur);
+    osc.start(t0);
+    osc.stop(t0 + 0.09);
+  }
+
+  function playJanggun(){
+    if(!audioCtx) return;
+    const t0 = audioCtx.currentTime;
+
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    const f = audioCtx.createBiquadFilter();
+
+    osc1.type = "sawtooth";
+    osc2.type = "square";
+    f.type = "lowpass";
+    f.frequency.setValueAtTime(1400, t0);
+    f.Q.setValueAtTime(1.0, t0);
+
+    const seq = [
+      {start:0.00, dur:0.10, f1:540, f2:810},
+      {start:0.14, dur:0.12, f1:620, f2:930},
+    ];
+
+    g.gain.setValueAtTime(0.0001, t0);
+    for(const s of seq){
+      const a = t0 + s.start;
+      g.gain.setValueAtTime(0.0001, a);
+      g.gain.linearRampToValueAtTime(0.35, a + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, a + s.dur);
+
+      osc1.frequency.setValueAtTime(s.f1, a);
+      osc1.frequency.linearRampToValueAtTime(s.f1*1.12, a + s.dur);
+
+      osc2.frequency.setValueAtTime(s.f2, a);
+      osc2.frequency.linearRampToValueAtTime(s.f2*1.10, a + s.dur);
+    }
+
+    osc1.connect(f);
+    osc2.connect(f);
+    f.connect(g);
+    g.connect(audioCtx.destination);
+
+    osc1.start(t0);
+    osc2.start(t0);
+    osc1.stop(t0 + 0.35);
+    osc2.stop(t0 + 0.35);
+  }
+
+  // -------------------------
+  // Game constants
+  // -------------------------
+  const SIDE = { HAN:'H', CHO:'C' };
+  const TYPE = { G:'G', A:'A', R:'R', H:'H', E:'E', C:'C', S:'S' };
+  const PIECE_VALUE = {
+    [TYPE.G]: 100000,
+    [TYPE.R]: 900,
+    [TYPE.C]: 450,
+    [TYPE.H]: 350,
+    [TYPE.E]: 300,
+    [TYPE.A]: 200,
+    [TYPE.S]: 120
+  };
+  const HANJA = { [TYPE.R]:'車',[TYPE.H]:'馬',[TYPE.E]:'象',[TYPE.A]:'士',[TYPE.C]:'炮',[TYPE.S]:'卒' };
+  function pieceText(p){
+    if(p.type === TYPE.G) return (p.side===SIDE.HAN) ? '漢' : '楚';
+    return HANJA[p.type] || '?';
+  }
+
+  // ✅ 요청: 글자 크기 규칙
+  // - 장(漢/楚): 가장 큼
+  // - 사/졸(士/卒): 작게
+  // - 마/상/차(馬/象/車): 중간
+  // - 포(炮): 기본
+  function pieceFontSize(type){
+    if(type === TYPE.G) return 78;                // 가장 큼
+    if(type === TYPE.A || type === TYPE.S) return 58; // 작게
+    if(type === TYPE.H || type === TYPE.E || type === TYPE.R) return 64; // 중간
+    return 66;                                     // 기본(炮)
+  }
+  function chipFontSize(type){
+    if(type === TYPE.G) return 28;
+    if(type === TYPE.A || type === TYPE.S) return 20;
+    if(type === TYPE.H || type === TYPE.E || type === TYPE.R) return 23;
+    return 24;
+  }
+
+  // -------------------------
+  // State
+  // -------------------------
+  let board = null;
+  let turn = SIDE.HAN;
+  let gameOver = false;
+  let thinking = false;
+
+  let selected = null;
+  let legalCache = [];
+
+  let winStreak = loadStreak();
+  let bestStreak = loadBestStreak();
+  let bestDiffIdx = loadBestDiffIdx();
+
+  let capturedByHan = [];
+  let capturedByCho = [];
+
+  const AI_DELAY_MS = 1000;
+
+  let particles = [];
+  let lastTime = performance.now();
+  let animT = 0;
+
+  const pieceImgCache = new Map();
+  const chipImgCache = new Map();
+
+  let movingPiece = null;
+
+  // -------------------------
+  // Geometry
+  // -------------------------
+  const GRID = { cols:9, rows:10 };
+  const pad = 44;
+  const cellW = (cv.width - pad*2) / (GRID.cols-1);
+  const cellH = (cv.height - pad*2) / (GRID.rows-1);
+
+  function xyToPx(x,y){ return { px: pad + x*cellW, py: pad + y*cellH }; }
+  function inside(x,y){ return x>=0 && x<9 && y>=0 && y<10; }
+  function pxToXY(px,py){
+    const x = Math.round((px - pad)/cellW);
+    const y = Math.round((py - pad)/cellH);
+    if(x<0||x>=GRID.cols||y<0||y>=GRID.rows) return null;
+    const p = xyToPx(x,y);
+    const dx = px - p.px, dy = py - p.py;
+    if (dx*dx + dy*dy > (Math.min(cellW,cellH)*0.48)**2) return null;
+    return {x,y};
+  }
+
+  // -------------------------
+  // Difficulty + Records
+  // -------------------------
+  const DIFF_LIST = [
+    { name:'EASY',   depth:2, timeMs:260,  noise:0.22 },
+    { name:'NORMAL', depth:3, timeMs:520,  noise:0.12 },
+    { name:'HARD',   depth:4, timeMs:950,  noise:0.06 },
+    { name:'PRO',    depth:5, timeMs:1400, noise:0.03 },
+    { name:'BOSS',   depth:5, timeMs:1800, noise:0.00 },
+  ];
+  function getDifficulty(streak){
+    if(streak <= 0) return DIFF_LIST[0];
+    if(streak === 1) return DIFF_LIST[1];
+    if(streak === 2) return DIFF_LIST[2];
+    if(streak === 3) return DIFF_LIST[3];
+    return DIFF_LIST[4];
+  }
+  function diffIndexByName(name){
+    return Math.max(0, DIFF_LIST.findIndex(d => d.name===name));
+  }
+  function updateRecordsUI(){
+    UI.bestStreakTxt.textContent = String(bestStreak);
+    UI.bestDiffTxt.textContent = DIFF_LIST[Math.max(0, Math.min(4,bestDiffIdx))].name;
+  }
+  function maybeUpdateRecords(){
+    if(winStreak > bestStreak){
+      bestStreak = winStreak;
+      saveBestStreak(bestStreak);
+    }
+    const curIdx = diffIndexByName(getDifficulty(winStreak).name);
+    if(curIdx > bestDiffIdx){
+      bestDiffIdx = curIdx;
+      saveBestDiffIdx(bestDiffIdx);
+    }
+    updateRecordsUI();
+  }
+
+  // -------------------------
+  // Board setup
+  // -------------------------
+  function makeEmptyBoard(){
+    const b = [];
+    for(let y=0;y<10;y++){
+      const row = [];
+      for(let x=0;x<9;x++) row.push(null);
+      b.push(row);
+    }
+    return b;
+  }
+  function put(x,y, side, type){ board[y][x] = { side, type }; }
+  function get(x,y){ return board[y][x]; }
+
+  function resetCaptured(){
+    capturedByHan = [];
+    capturedByCho = [];
+    renderCaptured();
+  }
+
+  function placeInitial(){
+    board = makeEmptyBoard();
+    resetCaptured();
+    particles = [];
+    movingPiece = null;
+
+    // 楚 (top)
+    put(0,0, SIDE.CHO, TYPE.R); put(8,0, SIDE.CHO, TYPE.R);
+    put(1,0, SIDE.CHO, TYPE.H); put(7,0, SIDE.CHO, TYPE.H);
+    put(2,0, SIDE.CHO, TYPE.E); put(6,0, SIDE.CHO, TYPE.E);
+    put(3,0, SIDE.CHO, TYPE.A); put(5,0, SIDE.CHO, TYPE.A);
+    put(4,1, SIDE.CHO, TYPE.G);
+    put(1,2, SIDE.CHO, TYPE.C); put(7,2, SIDE.CHO, TYPE.C);
+    put(0,3, SIDE.CHO, TYPE.S); put(2,3, SIDE.CHO, TYPE.S); put(4,3, SIDE.CHO, TYPE.S); put(6,3, SIDE.CHO, TYPE.S); put(8,3, SIDE.CHO, TYPE.S);
+
+    // 漢 (bottom)
+    put(0,9, SIDE.HAN, TYPE.R); put(8,9, SIDE.HAN, TYPE.R);
+    put(1,9, SIDE.HAN, TYPE.H); put(7,9, SIDE.HAN, TYPE.H);
+    put(2,9, SIDE.HAN, TYPE.E); put(6,9, SIDE.HAN, TYPE.E);
+    put(3,9, SIDE.HAN, TYPE.A); put(5,9, SIDE.HAN, TYPE.A);
+    put(4,8, SIDE.HAN, TYPE.G);
+    put(1,7, SIDE.HAN, TYPE.C); put(7,7, SIDE.HAN, TYPE.C);
+    put(0,6, SIDE.HAN, TYPE.S); put(2,6, SIDE.HAN, TYPE.S); put(4,6, SIDE.HAN, TYPE.S); put(6,6, SIDE.HAN, TYPE.S); put(8,6, SIDE.HAN, TYPE.S);
+
+    turn = SIDE.HAN;
+    gameOver = false;
+    thinking = false;
+    selected = null;
+    legalCache = [];
+    UI.statusTxt.textContent = "진행중";
+    UI.log.textContent = "";
+    appendLog("새 판 시작! (漢: 플레이어, 楚: AI)");
+    syncUI();
+    maybeUpdateRecords();
+  }
+
+  // -------------------------
+  // Palace / diagonals
+  // -------------------------
+  function inPalace(side, x,y){
+    if(x<3||x>5) return false;
+    if(side===SIDE.CHO) return (y>=0 && y<=2);
+    return (y>=7 && y<=9);
+  }
+  function palaceDiagonalConnected(x1,y1,x2,y2){
+    const key = (x,y)=> `${x},${y}`;
+    const edges = new Set([
+      `${key(3,0)}>${key(4,1)}`, `${key(4,1)}>${key(5,2)}`,
+      `${key(5,0)}>${key(4,1)}`, `${key(4,1)}>${key(3,2)}`,
+      `${key(3,7)}>${key(4,8)}`, `${key(4,8)}>${key(5,9)}`,
+      `${key(5,7)}>${key(4,8)}`, `${key(4,8)}>${key(3,9)}`
+    ]);
+    const a = `${key(x1,y1)}>${key(x2,y2)}`;
+    const b = `${key(x2,y2)}>${key(x1,y1)}`;
+    return edges.has(a) || edges.has(b);
+  }
+
+  // -------------------------
+  // Move generation
+  // -------------------------
+  function genMovesForPiece(b, x,y){
+    const p = b[y][x];
+    if(!p) return [];
+    const side = p.side, t = p.type;
+    const moves = [];
+    const add = (nx,ny) => {
+      if(!inside(nx,ny)) return;
+      const q = b[ny][nx];
+      if(q && q.side===side) return;
+      moves.push({fx:x, fy:y, tx:nx, ty:ny});
+    };
+
+    if(t===TYPE.R){
+      const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+      for(const [dx,dy] of dirs){
+        let nx=x+dx, ny=y+dy;
+        while(inside(nx,ny)){
+          const q = b[ny][nx];
+          if(!q) moves.push({fx:x,fy:y,tx:nx,ty:ny});
+          else { if(q.side!==side) moves.push({fx:x,fy:y,tx:nx,ty:ny}); break; }
+          nx+=dx; ny+=dy;
+        }
+      }
+
+      const neighbors = (cx,cy)=>{
+        const out=[];
+        const cand = [[cx+1,cy],[cx-1,cy],[cx,cy+1],[cx,cy-1],[cx+1,cy+1],[cx-1,cy+1],[cx+1,cy-1],[cx-1,cy-1]];
+        for(const [nx,ny] of cand){
+          if(!inside(nx,ny)) continue;
+          const samePal = (inPalace(SIDE.CHO,cx,cy)&&inPalace(SIDE.CHO,nx,ny)) || (inPalace(SIDE.HAN,cx,cy)&&inPalace(SIDE.HAN,nx,ny));
+          if(!samePal) continue;
+          const manhattan = Math.abs(nx-cx)+Math.abs(ny-cy);
+          if(manhattan===1) out.push([nx,ny]);
+          else if(Math.abs(nx-cx)===1 && Math.abs(ny-cy)===1 && palaceDiagonalConnected(cx,cy,nx,ny)) out.push([nx,ny]);
+        }
+        return out;
+      };
+
+      if(inPalace(SIDE.CHO,x,y) || inPalace(SIDE.HAN,x,y)){
+        const neigh = neighbors(x,y);
+        for(const [nx0,ny0] of neigh){
+          let nx=nx0, ny=ny0;
+          let px=x, py=y;
+          while(true){
+            const q = b[ny][nx];
+            if(!q) moves.push({fx:x,fy:y,tx:nx,ty:ny});
+            else { if(q.side!==side) moves.push({fx:x,fy:y,tx:nx,ty:ny}); break; }
+
+            const nxt = neighbors(nx,ny).filter(([ax,ay]) => !(ax===px && ay===py));
+            const vx=nx-px, vy=ny-py;
+            const keep = nxt.find(([ax,ay]) => (ax-nx)===vx && (ay-ny)===vy);
+            if(!keep) break;
+            px=nx; py=ny;
+            nx=keep[0]; ny=keep[1];
+          }
+        }
+      }
+    }
+
+    else if(t===TYPE.C){
+      const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+      for(const [dx,dy] of dirs){
+        let nx=x+dx, ny=y+dy;
+        while(inside(nx,ny) && !b[ny][nx]){ nx+=dx; ny+=dy; }
+        if(!inside(nx,ny)) continue;
+        const screen = b[ny][nx];
+        if(!screen) continue;
+        if(screen.type===TYPE.C) continue;
+        nx+=dx; ny+=dy;
+        while(inside(nx,ny)){
+          const q = b[ny][nx];
+          if(!q) moves.push({fx:x,fy:y,tx:nx,ty:ny});
+          else { if(q.side!==side && q.type!==TYPE.C) moves.push({fx:x,fy:y,tx:nx,ty:ny}); break; }
+          nx+=dx; ny+=dy;
+        }
+      }
+    }
+
+    else if(t===TYPE.H){
+      const steps = [
+        {b:[1,0], d:[1,1]}, {b:[1,0], d:[1,-1]},
+        {b:[-1,0], d:[-1,1]}, {b:[-1,0], d:[-1,-1]},
+        {b:[0,1], d:[1,1]}, {b:[0,1], d:[-1,1]},
+        {b:[0,-1], d:[1,-1]}, {b:[0,-1], d:[-1,-1]},
+      ];
+      for(const s of steps){
+        const bx=x+s.b[0], by=y+s.b[1];
+        if(!inside(bx,by)) continue;
+        if(b[by][bx]) continue;
+        add(x+s.b[0]+s.d[0], y+s.b[1]+s.d[1]);
+      }
+    }
+
+    else if(t===TYPE.E){
+      const patterns = [
+        {b1:[1,0], b2:[2,1], to:[3,2]},
+        {b1:[1,0], b2:[2,-1], to:[3,-2]},
+        {b1:[-1,0], b2:[-2,1], to:[-3,2]},
+        {b1:[-1,0], b2:[-2,-1], to:[-3,-2]},
+        {b1:[0,1], b2:[1,2], to:[2,3]},
+        {b1:[0,1], b2:[-1,2], to:[-2,3]},
+        {b1:[0,-1], b2:[1,-2], to:[2,-3]},
+        {b1:[0,-1], b2:[-1,-2], to:[-2,-3]},
+      ];
+      for(const ptn of patterns){
+        const b1x=x+ptn.b1[0], b1y=y+ptn.b1[1];
+        const b2x=x+ptn.b2[0], b2y=y+ptn.b2[1];
+        const tx=x+ptn.to[0], ty=y+ptn.to[1];
+        if(!inside(tx,ty) || !inside(b1x,b1y) || !inside(b2x,b2y)) continue;
+        if(b[b1y][b1x]) continue;
+        if(b[b2y][b2x]) continue;
+        add(tx,ty);
+      }
+    }
+
+    else if(t===TYPE.G || t===TYPE.A){
+      const cand = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
+      for(const [dx,dy] of cand){
+        const nx=x+dx, ny=y+dy;
+        if(!inside(nx,ny)) continue;
+        if(!inPalace(side, nx,ny)) continue;
+        if(Math.abs(dx)+Math.abs(dy)===2){
+          if(!palaceDiagonalConnected(x,y,nx,ny)) continue;
+        }
+        add(nx,ny);
+      }
+    }
+
+    else if(t===TYPE.S){
+      const dir = (side===SIDE.HAN) ? -1 : 1;
+      add(x, y+dir);
+      add(x-1, y);
+      add(x+1, y);
+
+      const nx1=x-1, ny1=y+dir;
+      const nx2=x+1, ny2=y+dir;
+      if(inside(nx1,ny1) && inPalace(side, x,y) && inPalace(side, nx1,ny1) && palaceDiagonalConnected(x,y,nx1,ny1)) add(nx1,ny1);
+      if(inside(nx2,ny2) && inPalace(side, x,y) && inPalace(side, nx2,ny2) && palaceDiagonalConnected(x,y,nx2,ny2)) add(nx2,ny2);
+    }
+
+    return moves;
+  }
+
+  function genAllMoves(b, side){
+    const out=[];
+    for(let y=0;y<10;y++){
+      for(let x=0;x<9;x++){
+        const p=b[y][x];
+        if(!p || p.side!==side) continue;
+        out.push(...genMovesForPiece(b,x,y));
+      }
+    }
+    return out;
+  }
+
+  function cloneBoard(b){
+    const nb = [];
+    for(let y=0;y<10;y++){
+      const row=[];
+      for(let x=0;x<9;x++){
+        const p=b[y][x];
+        row.push(p ? {side:p.side, type:p.type} : null);
+      }
+      nb.push(row);
+    }
+    return nb;
+  }
+
+  function applyMove(b, mv){
+    const nb = cloneBoard(b);
+    const p = nb[mv.fy][mv.fx];
+    const cap = nb[mv.ty][mv.tx];
+    nb[mv.fy][mv.fx]=null;
+    nb[mv.ty][mv.tx]=p;
+    return { nb, captured: cap };
+  }
+
+  function winnerByGeneralMissing(b){
+    let hasHanG=false, hasChoG=false;
+    for(let y=0;y<10;y++){
+      for(let x=0;x<9;x++){
+        const p=b[y][x];
+        if(!p) continue;
+        if(p.type===TYPE.G){
+          if(p.side===SIDE.HAN) hasHanG=true; else hasChoG=true;
+        }
+      }
+    }
+    if(!hasChoG) return SIDE.HAN;
+    if(!hasHanG) return SIDE.CHO;
+    return null;
+  }
+
+  // 장군 판정
+  function findGeneral(b, side){
+    for(let y=0;y<10;y++){
+      for(let x=0;x<9;x++){
+        const p=b[y][x];
+        if(p && p.side===side && p.type===TYPE.G) return {x,y};
+      }
+    }
+    return null;
+  }
+  function isInCheck(b, defenderSide){
+    const gpos = findGeneral(b, defenderSide);
+    if(!gpos) return false;
+    const attacker = (defenderSide===SIDE.HAN) ? SIDE.CHO : SIDE.HAN;
+    const moves = genAllMoves(b, attacker);
+    return moves.some(m => m.tx===gpos.x && m.ty===gpos.y);
+  }
+
+  let toastTimer = null;
+  function showJanggun(attackerSide){
+    if(gameOver) return;
+    const who = (attackerSide===SIDE.HAN) ? "漢(플레이어)" : "楚(AI)";
+    UI.janggunText.textContent = `${who} 장군!`;
+    UI.janggunToast.classList.remove('show');
+    void UI.janggunToast.offsetWidth;
+    UI.janggunToast.classList.add('show');
+    playJanggun();
+    if(toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=> UI.janggunToast.classList.remove('show'), 950);
+  }
+
+  // -------------------------
+  // AI
+  // -------------------------
+  function evaluate(b){
+    let score=0;
+    for(let y=0;y<10;y++){
+      for(let x=0;x<9;x++){
+        const p=b[y][x];
+        if(!p) continue;
+        const v = PIECE_VALUE[p.type] || 0;
+        score += (p.side===SIDE.CHO) ? v : -v;
+        if(p.type===TYPE.S){
+          const adv = (p.side===SIDE.CHO) ? y : (9-y);
+          score += (p.side===SIDE.CHO) ? adv*2 : -adv*2;
+        }
+      }
+    }
+    return score;
+  }
+
+  function pickMoveAI(){
+    const diff = getDifficulty(winStreak);
+    const start = performance.now();
+    const timeLimit = diff.timeMs;
+
+    const moves = genAllMoves(board, SIDE.CHO);
+    if(moves.length===0) return null;
+
+    moves.sort((a,b)=> {
+      const ca = board[a.ty][a.tx];
+      const cb = board[b.ty][b.tx];
+      const va = ca ? (PIECE_VALUE[ca.type]||0) : 0;
+      const vb = cb ? (PIECE_VALUE[cb.type]||0) : 0;
+      return vb - va;
+    });
+
+    let best = moves[0];
+    let bestScore = -Infinity;
+
+    function alphabeta(b, depth, alpha, beta, maximizing){
+      if(performance.now() - start > timeLimit) return evaluate(b);
+
+      const winner = winnerByGeneralMissing(b);
+      if(winner===SIDE.CHO) return  999999;
+      if(winner===SIDE.HAN) return -999999;
+
+      if(depth===0) return evaluate(b);
+
+      const s = maximizing ? SIDE.CHO : SIDE.HAN;
+      const ms = genAllMoves(b, s);
+      if(ms.length===0) return evaluate(b);
+
+      ms.sort((m1,m2)=>{
+        const c1 = b[m1.ty][m1.tx];
+        const c2 = b[m2.ty][m2.tx];
+        const v1 = c1 ? (PIECE_VALUE[c1.type]||0) : 0;
+        const v2 = c2 ? (PIECE_VALUE[c2.type]||0) : 0;
+        return v2 - v1;
+      });
+
+      if(maximizing){
+        let v=-Infinity;
+        for(const mv of ms){
+          const {nb} = applyMove(b,mv);
+          v = Math.max(v, alphabeta(nb, depth-1, alpha, beta, false));
+          alpha = Math.max(alpha, v);
+          if(beta <= alpha) break;
+        }
+        return v;
+      }else{
+        let v=Infinity;
+        for(const mv of ms){
+          const {nb} = applyMove(b,mv);
+          v = Math.min(v, alphabeta(nb, depth-1, alpha, beta, true));
+          beta = Math.min(beta, v);
+          if(beta <= alpha) break;
+        }
+        return v;
+      }
+    }
+
+    for(const mv of moves){
+      if(performance.now() - start > timeLimit) break;
+      const {nb} = applyMove(board, mv);
+      let sc = alphabeta(nb, diff.depth-1, -Infinity, Infinity, false);
+      if(diff.noise>0) sc += (Math.random()*2-1) * diff.noise * 200;
+      if(sc > bestScore){ bestScore=sc; best=mv; }
+    }
+    return best;
+  }
+
+  // -------------------------
+  // Piece Images (SVG) - ✅ 폰트 크기 반영
+  // -------------------------
+  function getPieceImage(p){
+    const key = `${p.side}_${p.type}`;
+    if(pieceImgCache.has(key)) return pieceImgCache.get(key);
+
+    const txt = pieceText(p);
+    const isHan = p.side === SIDE.HAN;
+    const ring = isHan ? '#39d98a' : '#ff5d5d';
+    const ring2 = isHan ? '#6ff2b7' : '#ff9a9a';
+    const glow = isHan ? 'rgba(57,217,138,.35)' : 'rgba(255,93,93,.35)';
+
+    const fs = pieceFontSize(p.type); // ✅ 타입별 크기
+    const y = (p.type === TYPE.G) ? 108 : 104; // 장은 약간 아래로
+
+    const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="180" height="180">
+      <defs>
+        <radialGradient id="stone" cx="32%" cy="28%" r="70%">
+          <stop offset="0%" stop-color="#fff7ea"/>
+          <stop offset="55%" stop-color="#f1e6d4"/>
+          <stop offset="100%" stop-color="#cdbfa8"/>
+        </radialGradient>
+        <radialGradient id="shine" cx="30%" cy="22%" r="55%">
+          <stop offset="0%" stop-color="rgba(255,255,255,.85)"/>
+          <stop offset="55%" stop-color="rgba(255,255,255,.12)"/>
+          <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+        </radialGradient>
+        <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="10" stdDeviation="8" flood-color="rgba(0,0,0,.35)"/>
+          <feDropShadow dx="0" dy="0" stdDeviation="10" flood-color="${glow}"/>
+        </filter>
+      </defs>
+      <g filter="url(#shadow)">
+        <circle cx="90" cy="92" r="70" fill="rgba(0,0,0,.18)"/>
+        <circle cx="90" cy="88" r="70" fill="url(#stone)" stroke="${ring}" stroke-width="8"/>
+        <circle cx="90" cy="88" r="62" fill="none" stroke="rgba(0,0,0,.12)" stroke-width="2"/>
+        <circle cx="90" cy="88" r="66" fill="none" stroke="${ring2}" stroke-opacity=".45" stroke-width="2"/>
+        <ellipse cx="74" cy="62" rx="46" ry="32" fill="url(#shine)" opacity=".95"/>
+        <text x="90" y="${y}" text-anchor="middle" font-size="${fs}" font-weight="900"
+          fill="${ring}" style="paint-order: stroke; stroke: rgba(0,0,0,.18); stroke-width: 2px;"
+          font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace">${txt}</text>
+      </g>
+    </svg>`.trim();
+
+    const img = new Image();
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    pieceImgCache.set(key, img);
+    return img;
+  }
+
+  function getChipURI(p){
+    const key = `${p.side}_${p.type}`;
+    if(chipImgCache.has(key)) return chipImgCache.get(key);
+
+    const txt = pieceText(p);
+    const isHan = p.side === SIDE.HAN;
+    const ring = isHan ? '#39d98a' : '#ff5d5d';
+    const fs = chipFontSize(p.type); // ✅ 타입별 크기
+    const y = (p.type === TYPE.G) ? 39 : 37;
+
+    const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60">
+      <defs>
+        <radialGradient id="s" cx="34%" cy="28%" r="72%">
+          <stop offset="0%" stop-color="#fff7ea"/>
+          <stop offset="60%" stop-color="#eadfcd"/>
+          <stop offset="100%" stop-color="#cbbda6"/>
+        </radialGradient>
+      </defs>
+      <circle cx="30" cy="31" r="23" fill="rgba(0,0,0,.18)"/>
+      <circle cx="30" cy="30" r="23" fill="url(#s)" stroke="${ring}" stroke-width="3"/>
+      <text x="30" y="${y}" text-anchor="middle" font-size="${fs}" font-weight="900" fill="${ring}"
+        style="paint-order:stroke;stroke:rgba(0,0,0,.15);stroke-width:1px;"
+        font-family="ui-monospace, monospace">${txt}</text>
+    </svg>`.trim();
+
+    const uri = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    chipImgCache.set(key, uri);
+    return uri;
+  }
+
+  function renderCaptured(){
+    UI.capHan.innerHTML = "";
+    UI.capCho.innerHTML = "";
+    UI.capHanCount.textContent = String(capturedByHan.length);
+    UI.capChoCount.textContent = String(capturedByCho.length);
+
+    for(const p of capturedByHan.slice(-24)){
+      const div = document.createElement('div');
+      div.className = "capChip";
+      const img = document.createElement('img');
+      img.src = getChipURI(p);
+      img.alt = pieceText(p);
+      div.appendChild(img);
+      UI.capHan.appendChild(div);
+    }
+    for(const p of capturedByCho.slice(-24)){
+      const div = document.createElement('div');
+      div.className = "capChip";
+      const img = document.createElement('img');
+      img.src = getChipURI(p);
+      img.alt = pieceText(p);
+      div.appendChild(img);
+      UI.capCho.appendChild(div);
+    }
+  }
+
+  // -------------------------
+  // Particles
+  // -------------------------
+  function spawnBurst(x,y,isWin){
+    const count = isWin ? 110 : 70;
+    for(let i=0;i<count;i++){
+      const ang = Math.random()*Math.PI*2;
+      const spd = (isWin ? 2.7 : 2.1) + Math.random()*3.4;
+      const vx = Math.cos(ang)*spd;
+      const vy = Math.sin(ang)*spd - (isWin ? (1.0+Math.random()*1.2) : 0.7);
+      const life = (isWin ? 950 : 760) + Math.random()*700;
+      const size = (isWin ? 3.2 : 2.8) + Math.random()*2.2;
+      particles.push({x,y,vx,vy,life,maxLife:life,size,win:isWin});
+    }
+  }
+  function fireResultParticles(isWin){
+    const c = xyToPx(4,4.5);
+    for(let b=0;b<(isWin?6:3);b++){
+      spawnBurst(c.px + (Math.random()*2-1)*140, c.py + (Math.random()*2-1)*160, isWin);
+    }
+  }
+
+  // -------------------------
+  // Smooth move animation
+  // -------------------------
+  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+  function startMoveAnimation(piece, fx,fy, tx,ty){
+    const dx = tx - fx, dy = ty - fy;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const dur = Math.max(160, Math.min(320, 160 + dist*70));
+    movingPiece = { piece, fx,fy, tx,ty, start: performance.now(), dur };
+  }
+
+  // -------------------------
+  // Gameplay
+  // -------------------------
+  function isPlayersTurn(){ return turn===SIDE.HAN && !gameOver && !thinking && !movingPiece; }
+  function selectAt(x,y){
+    selected = {x,y};
+    legalCache = genMovesForPiece(board,x,y);
+  }
+
+  function doMove(mv){
+    if(gameOver) return;
+    if(movingPiece) return;
+
+    const piece = board[mv.fy][mv.fx];
+    const cap = board[mv.ty][mv.tx];
+
+    board[mv.fy][mv.fx] = null;
+    board[mv.ty][mv.tx] = piece;
+
+    playTak();
+
+    if(cap){
+      if(piece.side===SIDE.HAN) capturedByHan.push(cap);
+      else capturedByCho.push(cap);
+      renderCaptured();
+    }
+
+    appendLog(`${piece.side===SIDE.HAN?'漢':'楚'}: ${pieceText(piece)} (${mv.fx},${mv.fy})→(${mv.tx},${mv.ty})` + (cap ? ` [${pieceText(cap)}]` : ""));
+
+    startMoveAnimation(piece, mv.fx, mv.fy, mv.tx, mv.ty);
+
+    const capturedGeneral = (cap && cap.type===TYPE.G);
+    const winnerIfAny = capturedGeneral ? piece.side : null;
+
+    const finalize = () => {
+      movingPiece = null;
+      selected = null;
+      legalCache = [];
+
+      if(winnerIfAny){
+        appendLog(`${piece.side===SIDE.HAN?'漢':'楚'}: 상대 장을 잡았습니다!`);
+        endGame(winnerIfAny);
+        return;
+      }
+
+      const defender = (piece.side===SIDE.HAN) ? SIDE.CHO : SIDE.HAN;
+      if(isInCheck(board, defender)){
+        showJanggun(piece.side);
+        appendLog(`⚠️ 장군! (${piece.side===SIDE.HAN?'漢':'楚'} → ${defender===SIDE.HAN?'漢':'楚'})`);
+      }
+
+      turn = (turn===SIDE.HAN) ? SIDE.CHO : SIDE.HAN;
+      syncUI();
+
+      if(turn===SIDE.CHO){
+        thinking = true;
+        syncUI();
+
+        setTimeout(() => {
+          if(gameOver){ thinking=false; syncUI(); return; }
+          const aiMv = pickMoveAI();
+          thinking = false;
+          syncUI();
+          if(gameOver) return;
+          if(!aiMv){ endGame(SIDE.HAN); return; }
+          doMove(aiMv);
+        }, AI_DELAY_MS);
+      }
+    };
+
+    setTimeout(finalize, movingPiece.dur);
+  }
+
+  function endGame(winner){
+    thinking = false;
+    gameOver = true;
+
+    const win = winner === SIDE.HAN;
+    if(win){
+      winStreak++;
+      saveStreak(winStreak);
+      UI.statusTxt.textContent = "승리";
+      UI.resultTitle.textContent = "승리!";
+      UI.resultBody.innerHTML = `상대 <b>楚</b>를 잡았습니다.<br/>연승이 <b>${winStreak}</b>로 올라가 난이도가 상승합니다.`;
+    }else{
+      winStreak = 0;
+      saveStreak(winStreak);
+      UI.statusTxt.textContent = "패배";
+      UI.resultTitle.textContent = "패배…";
+      UI.resultBody.innerHTML = `내 <b>漢</b>이 잡혔습니다.<br/>연승이 <b>0</b>으로 초기화됩니다.`;
+    }
+
+    maybeUpdateRecords();
+    syncUI();
+    fireResultParticles(win);
+    UI.resultOverlay.classList.add('show');
+  }
+
+  // -------------------------
+  // Rendering
+  // -------------------------
+  function drawBoard(t){
+    ctx.clearRect(0,0,cv.width,cv.height);
+
+    const pulse = (Math.sin(t*0.002) + 1) * 0.5;
+    const pulse2 = (Math.sin(t*0.0013 + 1.7) + 1) * 0.5;
+
+    const g = ctx.createRadialGradient(cv.width*0.5, cv.height*0.22, 50, cv.width*0.5, cv.height*0.45, cv.width*0.70);
+    g.addColorStop(0, `rgba(255, 208, 115, ${0.10 + 0.07*pulse})`);
+    g.addColorStop(0.45, `rgba(60, 120, 255, ${0.10 + 0.05*pulse2})`);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,cv.width,cv.height);
+
+    const tl = xyToPx(0,0);
+    const br = xyToPx(8,9);
+
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = `rgba(200, 230, 255, ${0.35 + 0.12*pulse})`;
+    ctx.beginPath();
+    ctx.rect(tl.px, tl.py, br.px - tl.px, br.py - tl.py);
+    ctx.stroke();
+
+    ctx.lineWidth = 2;
+    for(let x=0;x<9;x++){
+      const a = xyToPx(x,0), b = xyToPx(x,9);
+      ctx.strokeStyle = `rgba(200, 230, 255, ${0.16 + 0.10*pulse2})`;
+      ctx.beginPath(); ctx.moveTo(a.px,a.py); ctx.lineTo(b.px,b.py); ctx.stroke();
+    }
+    for(let y=0;y<10;y++){
+      const a = xyToPx(0,y), b = xyToPx(8,y);
+      ctx.strokeStyle = `rgba(200, 230, 255, ${0.16 + 0.10*pulse})`;
+      ctx.beginPath(); ctx.moveTo(a.px,a.py); ctx.lineTo(b.px,b.py); ctx.stroke();
+    }
+
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = `rgba(255, 220, 160, ${0.18 + 0.10*pulse})`;
+    const lines = [
+      [[3,0],[5,2]], [[5,0],[3,2]],
+      [[3,7],[5,9]], [[5,7],[3,9]],
+    ];
+    for(const [[x1,y1],[x2,y2]] of lines){
+      const a=xyToPx(x1,y1), b=xyToPx(x2,y2);
+      ctx.beginPath(); ctx.moveTo(a.px,a.py); ctx.lineTo(b.px,b.py); ctx.stroke();
+    }
+
+    if(selected){
+      for(const m of legalCache){
+        const c = xyToPx(m.tx,m.ty);
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(255, 208, 115, ${0.18 + 0.10*pulse})`;
+        ctx.arc(c.px, c.py, Math.min(cellW,cellH)*0.20, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+  }
+
+  function drawPieces(){
+    ctx.imageSmoothingEnabled = true;
+
+    let movingDraw = null;
+    if(movingPiece){
+      const now = performance.now();
+      const t = Math.min(1, (now - movingPiece.start) / movingPiece.dur);
+      const e = easeOutCubic(t);
+      const a = xyToPx(movingPiece.fx, movingPiece.fy);
+      const b = xyToPx(movingPiece.tx, movingPiece.ty);
+      movingDraw = { piece: movingPiece.piece, x: a.px + (b.px - a.px)*e, y: a.py + (b.py - a.py)*e };
+    }
+
+    for(let y=0;y<10;y++){
+      for(let x=0;x<9;x++){
+        const p = board[y][x];
+        if(!p) continue;
+        if(movingPiece && x===movingPiece.tx && y===movingPiece.ty) continue;
+
+        const c = xyToPx(x,y);
+        const img = getPieceImage(p);
+        const size = Math.min(cellW,cellH) * 0.92;
+        if(img.complete) ctx.drawImage(img, c.px - size/2, c.py - size/2, size, size);
+      }
+    }
+
+    if(movingDraw){
+      const img = getPieceImage(movingDraw.piece);
+      const size = Math.min(cellW,cellH) * 0.92;
+      if(img.complete) ctx.drawImage(img, movingDraw.x - size/2, movingDraw.y - size/2, size, size);
+    }
+
+    if(selected){
+      const c = xyToPx(selected.x, selected.y);
+      ctx.lineWidth = 7;
+      ctx.strokeStyle = "rgba(255, 208, 115, .95)";
+      ctx.beginPath();
+      ctx.arc(c.px, c.py, Math.min(cellW,cellH)*0.48, 0, Math.PI*2);
+      ctx.stroke();
+    }
+  }
+
+  function drawParticles(dt){
+    if(particles.length===0) return;
+
+    for(let i=particles.length-1;i>=0;i--){
+      const p = particles[i];
+      p.life -= dt;
+      if(p.life <= 0){ particles.splice(i,1); continue; }
+
+      const k = p.life / p.maxLife;
+      const a = Math.min(1, k*1.2);
+
+      p.vy += 0.012 * dt;
+      p.vx *= 0.999;
+      p.vy *= 0.999;
+      p.x += p.vx * (dt/16.7);
+      p.y += p.vy * (dt/16.7);
+
+      const baseA = 0.9 * a;
+      const col = p.win
+        ? (Math.random()<0.20 ? `rgba(57,217,138,${baseA})` : `rgba(255,208,115,${baseA})`)
+        : `rgba(255,93,93,${baseA})`;
+
+      ctx.fillStyle = col;
+      const sz = Math.max(2, p.size);
+      ctx.fillRect(p.x - sz/2, p.y - sz/2, sz, sz);
+    }
+  }
+
+  function renderFrame(now){
+    const dt = Math.min(40, now - lastTime);
+    lastTime = now;
+    animT = now;
+
+    drawBoard(animT);
+    drawPieces();
+    drawParticles(dt);
+
+    requestAnimationFrame(renderFrame);
+  }
+
+  // -------------------------
+  // UI / Logs / Storage
+  // -------------------------
+  function appendLog(s){
+    UI.log.textContent += (UI.log.textContent ? "\n" : "") + s;
+    UI.log.scrollTop = UI.log.scrollHeight;
+    UI.logHint.textContent = `${Math.min(UI.log.textContent.split("\n").length, 999)}줄`;
+  }
+
+  function syncUI(){
+    const diff = getDifficulty(winStreak);
+    UI.diffTxt.textContent = diff.name;
+    UI.streakTxt.textContent = String(winStreak);
+
+    UI.turnTxt.textContent =
+      gameOver ? "-" :
+      thinking ? "楚(AI) 생각중…" :
+      (turn===SIDE.HAN ? "漢(플레이어)" : "楚(AI)");
+
+    updateRecordsUI();
+  }
+
+  function saveStreak(v){ try{ localStorage.setItem("janggi_streak", String(v)); }catch(e){} }
+  function loadStreak(){
+    try{
+      const v = localStorage.getItem("janggi_streak");
+      const n = v ? parseInt(v,10) : 0;
+      return Number.isFinite(n) ? n : 0;
+    }catch(e){ return 0; }
+  }
+  function saveBestStreak(v){ try{ localStorage.setItem("janggi_best_streak", String(v)); }catch(e){} }
+  function loadBestStreak(){
+    try{
+      const v = localStorage.getItem("janggi_best_streak");
+      const n = v ? parseInt(v,10) : 0;
+      return Number.isFinite(n) ? n : 0;
+    }catch(e){ return 0; }
+  }
+  function saveBestDiffIdx(v){ try{ localStorage.setItem("janggi_best_diff_idx", String(v)); }catch(e){} }
+  function loadBestDiffIdx(){
+    try{
+      const v = localStorage.getItem("janggi_best_diff_idx");
+      const n = v ? parseInt(v,10) : 0;
+      return Number.isFinite(n) ? Math.max(0, Math.min(4,n)) : 0;
+    }catch(e){ return 0; }
+  }
+
+  // -------------------------
+  // Input
+  // -------------------------
+  function handleTap(ev){
+    if(!(turn===SIDE.HAN && !gameOver && !thinking && !movingPiece)) return;
+
+    const rect = cv.getBoundingClientRect();
+    const scaleX = cv.width / rect.width;
+    const scaleY = cv.height / rect.height;
+    const px = (ev.clientX - rect.left) * scaleX;
+    const py = (ev.clientY - rect.top) * scaleY;
+
+    const cell = pxToXY(px,py);
+    if(!cell) return;
+
+    const {x,y} = cell;
+    const p = get(x,y);
+
+    if(selected){
+      const mv = legalCache.find(m => m.tx===x && m.ty===y);
+      if(mv){ doMove(mv); return; }
+      if(p && p.side===SIDE.HAN) selectAt(x,y);
+      else { selected=null; legalCache=[]; }
+    }else{
+      if(p && p.side===SIDE.HAN) selectAt(x,y);
+    }
+  }
+
+  cv.addEventListener('pointerdown', (ev) => {
+    ev.preventDefault();
+    ensureAudio();
+    if(audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
+    handleTap(ev);
+  }, { passive:false });
+
+  // -------------------------
+  // Buttons
+  // -------------------------
+  UI.btnNew.addEventListener('click', () => {
+    ensureAudio();
+    if(audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
+    UI.resultOverlay.classList.remove('show');
+    placeInitial();
+  });
+
+  UI.btnHelp.addEventListener('click', () => UI.helpOverlay.classList.add('show'));
+  UI.btnGo.addEventListener('click', () => UI.helpOverlay.classList.remove('show'));
+  UI.btnCloseHelp.addEventListener('click', () => UI.helpOverlay.classList.remove('show'));
+
+  UI.btnReset.addEventListener('click', () => {
+    winStreak = 0;
+    saveStreak(winStreak);
+    appendLog("연승 리셋!");
+    syncUI();
+  });
+
+  UI.btnAgain.addEventListener('click', () => {
+    UI.resultOverlay.classList.remove('show');
+    placeInitial();
+  });
+  UI.btnCloseResult.addEventListener('click', () => UI.resultOverlay.classList.remove('show'));
+
+  // -------------------------
+  // Start
+  // -------------------------
+  bestStreak = Math.max(bestStreak, winStreak);
+  maybeUpdateRecords();
+
+  placeInitial();
+  syncUI();
+  renderCaptured();
+
+  requestAnimationFrame((t) => { lastTime=t; requestAnimationFrame(renderFrame); });
+})();
+</script>
+</body>
+</html>
